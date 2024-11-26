@@ -13,10 +13,39 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 // import { Checkbox } from "@/components/ui/checkbox"
+import { createClient } from '@supabase/supabase-js'
+
 const ibmPlexSans = IBM_Plex_Sans({
   subsets: ['latin'],
   weight: ['200', '300', '400', '500', '600', '700'],
 })
+
+async function isGasLessLimitReached(userAddress: `0x${string}`) {
+  console.log("isGasLessLimitReached --------------- ", userAddress)
+  if(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_ANON_SUPABASE && process.env.NEXT_PUBLIC_GAS_LESS_LIMIT) {
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_ANON_SUPABASE)
+    const { data, error } = await supabase.from("gas_free_history").select("*").eq("userAddress", userAddress)
+    console.log("data ", data)
+    const userHistoryCount = data?.[0]?.count ? data[0].count : 0
+    console.log("userHistoryCount ", userHistoryCount)
+    return userHistoryCount > Number(process.env.NEXT_PUBLIC_GAS_LESS_LIMIT)
+  }
+  return false
+}
+
+async function isSufficientBalance(userAddress: `0x${string}`, tokenAddress: DelegateToken) {
+  const tokens = tokenAddress ? [tokenAddress] : [DelegateToken.AAVE, DelegateToken.stkAAVE, DelegateToken.AAAVE]
+  const tasks: Promise<any>[] = []
+  for(const token of tokens) {
+    const task = getBalance(token, userAddress)
+    tasks.push(task)
+  }
+  const balances = await Promise.all(tasks)
+  const goodBalances = balances.filter((balance) => Number(formatEther(balance)) >= Number(process.env.NEXT_PUBLIC_GAS_LESS_BALANCE_IN_ETHER))
+  console.log("goodBalances ", goodBalances)
+  return goodBalances.length > 0
+}
+
 
 const bgImageLink = "https://firebasestorage.googleapis.com/v0/b/ucai-d6677.appspot.com/o/aavebg.png?alt=media&token=66c91456-3914-4f91-95ab-5aa727448ec7"
 
@@ -470,6 +499,19 @@ export default function AppLayout() {
   }
 
   const handleDelegate = async (token: DelegateToken, isGasLess: boolean) => {
+    if(!address) return
+    const [isSufficient, isLimitReached] = await Promise.all([
+        isSufficientBalance(address, token),
+        isGasLessLimitReached(address)
+    ]);
+    if(isLimitReached) {
+      console.log("gasless limit reached")
+      return
+    }
+    if(!isSufficient) {
+      console.log("not enough balance")
+      return
+    }
     const hash = token ? await metaDelegate([token], wallet, isGasLess) :  await metaDelegateALL(wallet, isGasLess)
     console.log(hash)
     return hash
