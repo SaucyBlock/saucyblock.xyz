@@ -46,7 +46,6 @@ async function isSufficientBalance(userAddress: `0x${string}`, tokenAddress: Del
   return goodBalances.length > 0
 }
 
-
 const bgImageLink = "https://firebasestorage.googleapis.com/v0/b/ucai-d6677.appspot.com/o/aavebg.png?alt=media&token=66c91456-3914-4f91-95ab-5aa727448ec7"
 
 const tokenData: any[] = [

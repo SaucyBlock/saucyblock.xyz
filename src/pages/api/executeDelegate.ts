@@ -13,10 +13,8 @@ const supabase = createClient(supabaseUrl, serviceRoleKey);
 const delegateHelper = "0x94363B11b37BC3ffe43AB09cff5A010352FE85dC";
 
 async function updateGasFreeHistory(userAddress: `0x${string}`) {
-  console.log("updateGasFreeHistory --------------- ", userAddress)
   const { data, error } = await supabase.from("gas_free_history").select("*").eq("userAddress", userAddress)
   const userHistory = data?.[0]
-  console.log("userHistory ", userHistory?.count)
   if(userHistory) {
     await supabase.from("gas_free_history").update({ count: userHistory.count + 1 }).eq("userAddress", userAddress)
   } else {
@@ -65,20 +63,14 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed. Only POST requests are accepted.' });
+  }
+
   const params = customParse(req.body);
   
   try {
-    // トランザクションのシミュレーション
-
-    const { request, result } = await publicClient.simulateContract({
-    address: delegateHelper,
-    abi: delegateHelperABI,
-    functionName: 'batchMetaDelegate',
-    account: account.address,
-    args:[params]
-  });
-
-  // ガス料金データの取得
+// ガス料金データの取得
   const [maxFeePerGas, maxPriorityFeePerGas] = await Promise.all([
     publicClient.estimateFeesPerGas(),
     publicClient.estimateMaxPriorityFeePerGas(),
