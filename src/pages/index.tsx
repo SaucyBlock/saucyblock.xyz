@@ -608,7 +608,7 @@ export default function AppLayout() {
           </div>
         </div>
       </div>
-    <TransactionStatus status={"success"} txHash={"txHash"} />
+    <TransactionStatus status={txStatus} txHash={txHash} />
     </div>
   )
 }
