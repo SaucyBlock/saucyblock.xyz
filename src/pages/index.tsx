@@ -8,7 +8,7 @@ import { metaDelegate, DelegateToken, getBalance, getDelegatee, metaDelegateALL,
 import { formatEther } from 'viem'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, LogOut, X } from 'lucide-react'
+import { CheckCircle, Loader2, LogOut, X, XCircle } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion";
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -405,6 +405,51 @@ type TokenInfo = {
   totalDelegated?: string
 }
 
+interface TransactionStatusProps {
+  status: 'loading' | 'success' | 'error' | null
+  txHash?: string
+}
+const TransactionStatus: React.FC<TransactionStatusProps> = ({ status, txHash }) => {
+  if (!status) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="fixed bottom-4 right-4 bg-white rounded-2xl shadow-lg p-4 max-w-md border border-gray-100"
+    >
+      {status === 'loading' && (
+        <div className="flex items-center text-blue-500">
+          <Loader2 className="animate-spin mr-2 h-5 w-5" />
+          <span className="text-gray-600">Transaction in progress...</span>
+        </div>
+      )}
+      {status === 'success' && (
+        <div className="flex items-center text-green-500">
+          <CheckCircle className="mr-2 h-5 w-5" />
+          <span className="text-gray-600">Transaction successful!</span>
+          {txHash && (
+            <a
+              href={`https://etherscan.io/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-2 text-blue-500 hover:text-blue-600 transition-colors duration-200"
+            >
+              View on Etherscan
+            </a>
+          )}
+        </div>
+      )}
+      {status === 'error' && (
+        <div className="flex items-center text-red-500">
+          <XCircle className="mr-2 h-5 w-5" />
+          <span className="text-gray-600">Transaction failed. Please try again.</span>
+        </div>
+      )}
+    </motion.div>
+  )
+}
 export default function AppLayout() {
   const [isCorrectChain, setIsCorrectChain] = useState(false)
   const [address, setAddress] = useState<Address | null>(null)
@@ -414,6 +459,8 @@ export default function AppLayout() {
   const [tokenDataWithBalances, setTokenDataWithBalances] = useState<TokenInfo[]>([])
   const [useGasless, setUseGasless] = useState(true);
   const [sumDelegated, setSumDelegated] = useState(0);
+  const [txStatus, setTxStatus] = useState<'loading' | 'success' | 'error' | null>(null)
+  const [txHash, setTxHash] = useState<string | undefined>(undefined)
 
   async function setupWallet() {
     const publicClient = createPublicClient({
@@ -498,11 +545,12 @@ export default function AppLayout() {
     // setPublicClient(null)
   }
 
+
   const handleDelegate = async (token: DelegateToken, isGasLess: boolean) => {
     if(!address) return
     const [isSufficient, isLimitReached] = await Promise.all([
-        isSufficientBalance(address, token),
-        isGasLessLimitReached(address)
+      isSufficientBalance(address, token),
+      isGasLessLimitReached(address)
     ]);
     if(isLimitReached) {
       console.log("gasless limit reached")
@@ -512,10 +560,19 @@ export default function AppLayout() {
       console.log("not enough balance")
       return
     }
-    const hash = token ? await metaDelegate([token], wallet, isGasLess) :  await metaDelegateALL(wallet, isGasLess)
-    console.log(hash)
-    return hash
+    setTxStatus('loading')
+    try {
+      const hash = token ? await metaDelegate([token], wallet, isGasLess) : await metaDelegateALL(wallet, isGasLess)
+      console.log(hash)
+      setTxHash(hash)
+      setTxStatus('success')
+      return hash
+    } catch (error) {
+      console.error("Delegation failed:", error)
+      setTxStatus('error')
+    }
   }
+
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
@@ -551,6 +608,7 @@ export default function AppLayout() {
           </div>
         </div>
       </div>
+    <TransactionStatus status={"success"} txHash={"txHash"} />
     </div>
   )
 }
