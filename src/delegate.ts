@@ -139,6 +139,7 @@ export async function metaDelegate(tokens: DelegateToken[], walletClient: any, i
 try {
   // generate delegateParams
   const [account] = await walletClient.getAddresses();
+  console.log('/metaDelegate',account,isUseGasLess)
   const delegateParams = [];
   for (const token of tokens) {
     try {

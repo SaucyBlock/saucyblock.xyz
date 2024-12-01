@@ -462,6 +462,7 @@ export default function AppLayout() {
           if (token.address) {
             const { vote, proposal } = isNoWallet ? {vote: 0, proposal: 0} : await getDelegatee(token.address, address)
             const balance = isNoWallet ? 0 : await getBalance(token.address, address)
+            console.log("tokenData", token,balance)
             let totalDelegated = await getTotalDelegated(token.address)
 
             sumDelegated += Number(totalDelegated)
