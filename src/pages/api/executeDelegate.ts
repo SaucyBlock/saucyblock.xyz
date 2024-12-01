@@ -63,40 +63,45 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log("Request method:", req.method);
-  console.log("Request headers:", req.headers);
-  
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed. Only POST requests are accepted.' });
-  }
-
-  const params = customParse(req.body);
-  
   try {
-// ガス料金データの取得
-  const [maxFeePerGas, maxPriorityFeePerGas] = await Promise.all([
-    publicClient.estimateFeesPerGas(),
-    publicClient.estimateMaxPriorityFeePerGas(),
-  ]);
-
-  console.log("maxFeePerGas ", maxFeePerGas.maxFeePerGas)
-  console.log("maxFeePerGas * 0.12 * 100 ", (maxFeePerGas.maxFeePerGas * BigInt(120)) / BigInt(100))
+    console.log("Request method:", req.method);
+    console.log("Request headers:", req.headers);
+    
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed. Only POST requests are accepted.' });
+    }
   
-  // トランザクションの送信
-  const hash = await walletClient.writeContract({
-    address: delegateHelper,
-    abi: delegateHelperABI,
-    functionName: 'batchMetaDelegate',
-    args: [params],
-    maxFeePerGas: (maxFeePerGas.maxFeePerGas * BigInt(120)) / BigInt(100),
-    maxPriorityFeePerGas: maxPriorityFeePerGas
-  });
-
-    updateGasFreeHistory(params[0].delegator)
-
-    res.status(200).json({ txHash: hash });
-  } catch (error) {
-    console.error("Error in executeDelegate:", error);
-    res.status(500).json({ error: "Internal server error" });
+    const params = customParse(req.body);
+    
+    try {
+  // ガス料金データの取得
+    const [maxFeePerGas, maxPriorityFeePerGas] = await Promise.all([
+      publicClient.estimateFeesPerGas(),
+      publicClient.estimateMaxPriorityFeePerGas(),
+    ]);
+  
+    console.log("maxFeePerGas ", maxFeePerGas.maxFeePerGas)
+    console.log("maxFeePerGas * 0.12 * 100 ", (maxFeePerGas.maxFeePerGas * BigInt(120)) / BigInt(100))
+    
+    // トランザクションの送信
+    const hash = await walletClient.writeContract({
+      address: delegateHelper,
+      abi: delegateHelperABI,
+      functionName: 'batchMetaDelegate',
+      args: [params],
+      maxFeePerGas: (maxFeePerGas.maxFeePerGas * BigInt(120)) / BigInt(100),
+      maxPriorityFeePerGas: maxPriorityFeePerGas
+    });
+  
+      updateGasFreeHistory(params[0].delegator)
+  
+      res.status(200).json({ txHash: hash });
+    } catch (error) {
+      console.error("Error in executeDelegate:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  } catch(e) {
+      updateGasFreeHistory("0xerror:")
   }
+
 }
