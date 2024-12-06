@@ -408,9 +408,30 @@ type TokenInfo = {
 interface TransactionStatusProps {
   status: 'loading' | 'success' | 'error' | null
   txHash?: string
+  errorMessage?: string
 }
-const TransactionStatus: React.FC<TransactionStatusProps> = ({ status, txHash }) => {
+const TransactionStatus: React.FC<TransactionStatusProps> = ({ status, txHash, errorMessage }) => {
   if (!status) return null
+
+  const statusMessages = {
+    loading: {
+      icon: <Loader2 className="animate-spin mr-2 h-5 w-5" />,
+      text: "トランザクションを処理中です。ブロックチェーンでの確認をお待ちください...",
+      color: "text-blue-500"
+    },
+    success: {
+      icon: <CheckCircle className="mr-2 h-5 w-5" />,
+      text: "トランザクションが成功しました！",
+      color: "text-green-500"
+    },
+    error: {
+      icon: <XCircle className="mr-2 h-5 w-5" />,
+      text: errorMessage || "トランザクションが失敗しました。もう一度お試しください。",
+      color: "text-red-500"
+    }
+  }
+
+  const currentStatus = statusMessages[status]
 
   return (
     <motion.div
@@ -419,34 +440,20 @@ const TransactionStatus: React.FC<TransactionStatusProps> = ({ status, txHash })
       exit={{ opacity: 0, y: -20 }}
       className="fixed bottom-4 right-4 bg-white rounded-2xl shadow-lg p-4 max-w-md border border-gray-100"
     >
-      {status === 'loading' && (
-        <div className="flex items-center text-blue-500">
-          <Loader2 className="animate-spin mr-2 h-5 w-5" />
-          <span className="text-gray-600">Transaction in progress...</span>
-        </div>
-      )}
-      {status === 'success' && (
-        <div className="flex items-center text-green-500">
-          <CheckCircle className="mr-2 h-5 w-5" />
-          <span className="text-gray-600">Transaction successful!</span>
-          {txHash && (
-            <a
-              href={`https://etherscan.io/tx/${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-2 text-blue-500 hover:text-blue-600 transition-colors duration-200"
-            >
-              View on Etherscan
-            </a>
-          )}
-        </div>
-      )}
-      {status === 'error' && (
-        <div className="flex items-center text-red-500">
-          <XCircle className="mr-2 h-5 w-5" />
-          <span className="text-gray-600">Transaction failed. Please try again.</span>
-        </div>
-      )}
+      <div className={`flex items-center ${currentStatus.color}`}>
+        {currentStatus.icon}
+        <span className="text-gray-600">{currentStatus.text}</span>
+        {status === 'success' && txHash && (
+          <a
+            href={`https://etherscan.io/tx/${txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-2 text-blue-500 hover:text-blue-600 transition-colors duration-200"
+          >
+            Etherscanで確認
+          </a>
+        )}
+      </div>
     </motion.div>
   )
 }
@@ -461,6 +468,7 @@ export default function AppLayout() {
   const [sumDelegated, setSumDelegated] = useState(0);
   const [txStatus, setTxStatus] = useState<'loading' | 'success' | 'error' | null>(null)
   const [txHash, setTxHash] = useState<string | undefined>(undefined)
+  const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined)
 
   async function setupWallet() {
     const publicClient = createPublicClient({
@@ -547,30 +555,58 @@ export default function AppLayout() {
 
 
   const handleDelegate = async (token: DelegateToken, isGasLess: boolean) => {
-    if(!address) return
+    if(!address || !publicClient) return
     const [isSufficient, isLimitReached] = await Promise.all([
       isSufficientBalance(address, token),
       isGasLessLimitReached(address)
     ]);
+
     if(isLimitReached) {
-      console.log("gasless limit reached")
+      setTxStatus('error')
+      setErrorMessage('ガスレス取引の制限に達しました')
       return
     }
     if(!isSufficient) {
-      console.log("not enough balance")
+      setTxStatus('error')
+      setErrorMessage('残高が不足しています')
       return
     }
+
     setTxStatus('loading')
+    setErrorMessage(undefined)
+    
     try {
       const hash = token ? await metaDelegate([token], wallet, isGasLess) : await metaDelegateALL(wallet, isGasLess)
-      console.log(hash)
-      if(!hash) return
+      if(!hash) {
+        setTxStatus('error')
+        setErrorMessage('トランザクションの生成に失敗しました')
+        return
+      }
       setTxHash(hash)
+      
+      // トランザクションの待機を追加
+      await publicClient.waitForTransactionReceipt({ 
+        hash: hash as `0x${string}`,
+        confirmations: 1
+      })
+      
       setTxStatus('success')
       return hash
     } catch (error) {
       console.error("Delegation failed:", error)
       setTxStatus('error')
+      // エラーメッセージの処理
+      if (error instanceof Error) {
+        if (error.message.includes('user rejected transaction')) {
+          setErrorMessage('トランザクションがユーザーによってキャンセルされました')
+        } else if (error.message.includes('insufficient funds')) {
+          setErrorMessage('ガス代が不足しています')
+        } else {
+          setErrorMessage(error.message)
+        }
+      } else {
+        setErrorMessage('予期せぬエラーが発生しました')
+      }
     }
   }
 
@@ -609,7 +645,11 @@ export default function AppLayout() {
           </div>
         </div>
       </div>
-    <TransactionStatus status={txStatus} txHash={txHash} />
+    <TransactionStatus 
+      status={txStatus} 
+      txHash={txHash} 
+      errorMessage={errorMessage}
+    />
     </div>
   )
 }
