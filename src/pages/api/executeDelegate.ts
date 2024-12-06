@@ -52,26 +52,27 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+
+
+  if(!supabaseUrl || !serviceRoleKey) {
+    return res.status(500).json({ error: "Internal server configuration error" });
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  const updateGasFreeHistory = async (userAddress: `0x${string}`) => {
+    const { data, error } = await supabase.from("gas_free_history").select("*").eq("userAddress", userAddress)
+    const userHistory = data?.[0]
+    if(userHistory) {
+      await supabase.from("gas_free_history").update({ count: userHistory.count + 1 }).eq("userAddress", userAddress)
+    } else {
+      await supabase.from("gas_free_history").insert({ userAddress, count: 1 });
+    }
+  }
+
   try {
     console.log("Request method:", req.method);
     console.log("Request headers:", req.headers);
-
-    if(!supabaseUrl || !serviceRoleKey) {
-      return res.status(500).json({ error: "Internal server configuration error" });
-    }
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    const updateGasFreeHistory = async (userAddress: `0x${string}`) => {
-      const { data, error } = await supabase.from("gas_free_history").select("*").eq("userAddress", userAddress)
-      const userHistory = data?.[0]
-      if(userHistory) {
-        await supabase.from("gas_free_history").update({ count: userHistory.count + 1 }).eq("userAddress", userAddress)
-      } else {
-        await supabase.from("gas_free_history").insert({ userAddress, count: 1 });
-      }
-    }
-    
     
     if (req.method !== 'POST') {
       res.setHeader('Allow', 'POST, OPTIONS, HEAD');
