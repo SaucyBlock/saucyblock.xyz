@@ -564,6 +564,7 @@ export default function AppLayout() {
     try {
       const hash = token ? await metaDelegate([token], wallet, isGasLess) : await metaDelegateALL(wallet, isGasLess)
       console.log(hash)
+      if(!hash) return
       setTxHash(hash)
       setTxStatus('success')
       return hash

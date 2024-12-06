@@ -6,9 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import delegateHelperABI from '../../delegateHelperABI.json';
 const serviceRoleKey = process.env.SERVICE_ROLE_KEY;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-if(!supabaseUrl || !serviceRoleKey) {
-  throw new Error("SUPABASE_URL or SERVICE_ROLE_KEY is not set");
-}
+
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 const delegateHelper = "0x94363B11b37BC3ffe43AB09cff5A010352FE85dC";
 
@@ -66,9 +64,14 @@ export default async function handler(
   try {
     console.log("Request method:", req.method);
     console.log("Request headers:", req.headers);
+
+    if(!supabaseUrl || !serviceRoleKey) {
+      return res.status(500).json({ error: "Internal server configuration error" });
+    }
     
     if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed. Only POST requests are accepted.' });
+      res.setHeader('Allow', 'POST, OPTIONS, HEAD');
+      return res.status(405).json({ error: 'Method Not Allowed' });
     }
   
     const params = customParse(req.body);
