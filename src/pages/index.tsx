@@ -570,13 +570,13 @@ export default function AppLayout() {
 
     if(isLimitReached) {
       setTxStatus('error')
-      setErrorMessage('ガスレス取引の制限に達しました')
+      setErrorMessage('reached gasless limit')
       return
     }
 
     if(!isSufficient) {
       setTxStatus('error')
-      setErrorMessage('残高が不足しています')
+      setErrorMessage('insufficient balance')
       return
     }
 
