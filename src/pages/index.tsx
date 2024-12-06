@@ -27,7 +27,7 @@ async function isGasLessLimitReached(userAddress: `0x${string}`) {
     const { data, error } = await supabase.from("gas_free_history").select("*").eq("userAddress", userAddress)
     console.log("data ", data)
     const userHistoryCount = data?.[0]?.count ? data[0].count : 0
-    console.log("userHistoryCount ", userHistoryCount)
+    console.log("userHistoryCount ", userHistoryCount, process.env.NEXT_PUBLIC_GAS_LESS_LIMIT)
     return userHistoryCount > Number(process.env.NEXT_PUBLIC_GAS_LESS_LIMIT)
   }
   return false
