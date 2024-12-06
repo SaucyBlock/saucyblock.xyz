@@ -410,53 +410,59 @@ interface TransactionStatusProps {
   txHash?: string
   errorMessage?: string
 }
+
 const TransactionStatus: React.FC<TransactionStatusProps> = ({ status, txHash, errorMessage }) => {
   if (!status) return null
 
   const statusMessages = {
     loading: {
       icon: <Loader2 className="animate-spin mr-2 h-5 w-5" />,
-      text: "トランザクションを処理中です。ブロックチェーンでの確認をお待ちください...",
+      text: "waiting for confirmation...",
       color: "text-blue-500"
     },
     success: {
       icon: <CheckCircle className="mr-2 h-5 w-5" />,
-      text: "トランザクションが成功しました！",
+      text: "Transaction successful!",
       color: "text-green-500"
     },
     error: {
       icon: <XCircle className="mr-2 h-5 w-5" />,
-      text: errorMessage || "トランザクションが失敗しました。もう一度お試しください。",
+      text: errorMessage || "Transaction failed. Please try again.",
       color: "text-red-500"
     }
   }
 
   const currentStatus = statusMessages[status]
 
+  const handleCheckGovernance = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    window.open('https://app.aave.com/', '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="fixed bottom-4 right-4 bg-white rounded-2xl shadow-lg p-4 max-w-md border border-gray-100"
+      className="fixed bottom-4 right-4 bg-white rounded-2xl shadow-lg p-4 max-w-md border border-gray-100 z-50"
     >
-      <div className={`flex items-center ${currentStatus.color}`}>
+      <div className={`flex items-center ${currentStatus.color} mb-2`}>
         {currentStatus.icon}
         <span className="text-gray-600">{currentStatus.text}</span>
-        {status === 'success' && txHash && (
-          <a
-            href={`https://etherscan.io/tx/${txHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ml-2 text-blue-500 hover:text-blue-600 transition-colors duration-200"
-          >
-            Etherscanで確認
-          </a>
-        )}
       </div>
+      {status === 'success' && txHash && (
+        <Button 
+          onClick={handleCheckGovernance}
+          className="w-full bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200"
+        >
+          Check on Aave Governance
+        </Button>
+      )}
     </motion.div>
   )
 }
+
+
 export default function AppLayout() {
   const [isCorrectChain, setIsCorrectChain] = useState(false)
   const [address, setAddress] = useState<Address | null>(null)
@@ -482,6 +488,7 @@ export default function AppLayout() {
     })
 
     setWallet(wallet)
+    
     try {
       const chainId = await wallet.getChainId()
       if (chainId !== mainnet.id) {
@@ -566,6 +573,7 @@ export default function AppLayout() {
       setErrorMessage('ガスレス取引の制限に達しました')
       return
     }
+
     if(!isSufficient) {
       setTxStatus('error')
       setErrorMessage('残高が不足しています')
@@ -577,11 +585,13 @@ export default function AppLayout() {
     
     try {
       const hash = token ? await metaDelegate([token], wallet, isGasLess) : await metaDelegateALL(wallet, isGasLess)
+
       if(!hash) {
         setTxStatus('error')
-        setErrorMessage('トランザクションの生成に失敗しました')
+        setErrorMessage('transaction generation failed')
         return
       }
+
       setTxHash(hash)
       
       // トランザクションの待機を追加

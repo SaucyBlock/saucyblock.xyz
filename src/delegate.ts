@@ -141,6 +141,7 @@ try {
   const [account] = await walletClient.getAddresses();
   console.log('/metaDelegate',account,isUseGasLess)
   const delegateParams = [];
+
   for (const token of tokens) {
     try {
         const { v, r, s, account } = await generateSignature(token, walletClient);
