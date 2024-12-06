@@ -7,18 +7,9 @@ import delegateHelperABI from '../../delegateHelperABI.json';
 const serviceRoleKey = process.env.SERVICE_ROLE_KEY;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-const supabase = createClient(supabaseUrl, serviceRoleKey);
+
 const delegateHelper = "0x94363B11b37BC3ffe43AB09cff5A010352FE85dC";
 
-async function updateGasFreeHistory(userAddress: `0x${string}`) {
-  const { data, error } = await supabase.from("gas_free_history").select("*").eq("userAddress", userAddress)
-  const userHistory = data?.[0]
-  if(userHistory) {
-    await supabase.from("gas_free_history").update({ count: userHistory.count + 1 }).eq("userAddress", userAddress)
-  } else {
-    await supabase.from("gas_free_history").insert({ userAddress, count: 1 });
-  }
-}
 
 
 const publicClient = createPublicClient({
@@ -68,6 +59,19 @@ export default async function handler(
     if(!supabaseUrl || !serviceRoleKey) {
       return res.status(500).json({ error: "Internal server configuration error" });
     }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const updateGasFreeHistory = async (userAddress: `0x${string}`) => {
+      const { data, error } = await supabase.from("gas_free_history").select("*").eq("userAddress", userAddress)
+      const userHistory = data?.[0]
+      if(userHistory) {
+        await supabase.from("gas_free_history").update({ count: userHistory.count + 1 }).eq("userAddress", userAddress)
+      } else {
+        await supabase.from("gas_free_history").insert({ userAddress, count: 1 });
+      }
+    }
+    
     
     if (req.method !== 'POST') {
       res.setHeader('Allow', 'POST, OPTIONS, HEAD');
