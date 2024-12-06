@@ -135,7 +135,7 @@ const Title = ({ activeTab }: TitleProps) => {
 const DetailTexts = () => {
   return (
     <div className={`w-full md:w-[474px] text-white opacity-70 ${ibmPlexSans.className} font-extralight text-[11px] leading-[16px] mb-6`}>
-      We are the Aave Delegate Platform, founded in January 2024. Our team contributes to the long-term prosperity of the Aave DAO and its ecosystem through making proposls and reviewing proposals, voting, and developing products that integrate Aave. Here, you can delegate your tokens to saucyblock.eth gas-free.
+      We are the Aave Delegate Platform, founded in January 2024. Our team contributes to the long-term prosperity of the Aave DAO and its ecosystem through making proposls and reviewing proposals, voting, and developing products that integrate Aave. Here, you can delegate your tokens to saucyblock.eth free-gas.
     </div>
   )
 }

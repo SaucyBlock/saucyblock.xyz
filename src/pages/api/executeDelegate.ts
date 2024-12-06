@@ -6,12 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import delegateHelperABI from '../../delegateHelperABI.json';
 const serviceRoleKey = process.env.SERVICE_ROLE_KEY;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-
 const delegateHelper = "0x94363B11b37BC3ffe43AB09cff5A010352FE85dC";
-
-
-
 const publicClient = createPublicClient({
   chain: mainnet,
   transport: http("https://eth-mainnet.g.alchemy.com/v2/AHvTHUHmlCKWoa5hezH-MTrKWw_MjtUZ")
