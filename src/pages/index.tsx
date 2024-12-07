@@ -482,12 +482,11 @@ export default function AppLayout() {
       transport: http("https://eth-mainnet.g.alchemy.com/v2/AHvTHUHmlCKWoa5hezH-MTrKWw_MjtUZ")
     })
     setPublicClient(publicClient)
-  
     const wallet = createWalletClient({
       chain: mainnet,
       transport: custom((window as any).ethereum)
     })
-  
+
     setWallet(wallet)
     
     try {
@@ -495,52 +494,24 @@ export default function AppLayout() {
       if (chainId !== mainnet.id) {
         await switchChain(wallet, { id: mainnet.id })
       }
-  
+
       setIsCorrectChain(true)
-  
-      // 複数のアドレスを取得
-      const accounts = await wallet.requestAddresses()
-  
-      let selectedAccount: `0x${string}` | undefined
-      if (accounts.length === 0) {
-        console.error("No accounts available")
-        return
-      } else if (accounts.length === 1) {
-        // アカウントが1つだけならそれを使用
-        selectedAccount = accounts[0]
-      } else {
-        // アカウントが複数ある場合、ユーザーに選択させる
-        // ここではpromptを使用
-        const selection = prompt(
-          "Select an address by index:\n" + 
-          accounts.map((acc, i) => `${i}: ${acc}`).join("\n")
-        )
-  
-        const idx = parseInt(selection || '', 10)
-        if (Number.isNaN(idx) || idx < 0 || idx >= accounts.length) {
-          console.error("Invalid account selection")
-          return
-        }
-        selectedAccount = accounts[idx]
-      }
-  
-      if (!selectedAccount) {
-        return
-      }
-  
-      setAddress(selectedAccount)
-  
-      const name = await publicClient.getEnsName({ address: selectedAccount })
+
+      const [account] = await wallet.requestAddresses()
+      setAddress(account)
+
+      const name = await publicClient.getEnsName({ address: account })
       setEnsName(name)
     } catch (error) {
       console.error("Error setting up wallet:", error)
       setIsCorrectChain(false)
     }
   }
-  // useEffect(() => {
-  //   if (!((window as any).ethereum)) return
-  //   setupWallet()
-  // }, [])
+  
+  useEffect(() => {
+    if (!((window as any).ethereum)) return
+    setupWallet()
+  }, [])
 
 
   useEffect(() => {
