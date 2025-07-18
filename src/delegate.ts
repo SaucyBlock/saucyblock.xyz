@@ -202,7 +202,7 @@ try {
       if (!response.ok) {
         throw new Error("HTTP Error: " + response.statusText);
       }
-      let { txHash } = await response.json();
+      let { txHash } = await response.json() as { txHash: string };
       console.log("txHash", txHash);
       result = txHash;
     }else {
